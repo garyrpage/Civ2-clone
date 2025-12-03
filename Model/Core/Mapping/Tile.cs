@@ -80,26 +80,21 @@ namespace Civ2engine.MapObjects
                 Special = (d & a) == (d & b) ? 1 : 0;
             }
 
-            IsGoodyHutTile = terrain.Type != TerrainType.Ocean && GoodyHutAlgo2(seed);
-            string line = $"Tile ({x}, {y}) - Terrain: {terrain.Type} Has GoodyHut: {IsGoodyHutTile}";
-
-            File.AppendAllText(LogFilePath, line + "\n");
+            if(terrain.Type != TerrainType.Ocean && CalculateGoodyHut(seed))
+            {
+                IsGoodyHutTile = true;
+                _goodyHut = new GoodyHut();
+            }
 
             // Terrain must be set after special to get the correct EffectiveTerrain type for specials
             Terrain = terrain;
         }
 
-        private static readonly string LogFilePath = "game_log.txt";
-
-        public static void LogTile(int x, int y, bool hasGoodyHut)
-        {
-        }
-
-        private bool GoodyHutAlgo2(int seed)
+        private bool CalculateGoodyHut(int seed)
         {
             // https://apolyton.net/forum/miscellaneous/archives/civ2-strategy-archive/80739-location-of-huts
             // https://apolyton.net/forum/miscellaneous/archives/civ2-strategy-archive/48020-hut-pattern
-            // This one is close but not quite right. Has the patterns but offset slightly on the map.
+            // This one seems pretty close to matching the forums for hut locations.
             var nSum = (X + Y) / 2;
             var nDiff = (X - Y) / 2;
             nDiff = (nDiff + 4096) % 4096;
@@ -110,35 +105,18 @@ namespace Civ2engine.MapObjects
             return hash == expectedHash;
         }
 
-        private bool GoodyHutAlgo1(int seed)
-        {
-            var nSum = (X + Y) / 2;
-            var nDiff = (X - Y) / 2;
-            nDiff = (nDiff + 4096) % 4096;
-
-            int nSumDiv4 = nSum / 4;
-            int nDiffDiv4 = nDiff / 4;
-            int hash = nSumDiv4 * 11 + nDiffDiv4 * 13 + 8;
-
-            int seedComponent = (nSumDiv4 % 4) + (nDiffDiv4 % 4) * 4 - (hash / 32) % 32;
-            int finalSeed = (seedComponent + 32) % 32;
-
-            Console.WriteLine("Seed: " + seed);
-            Console.WriteLine("FinalSeed: " + finalSeed);
-
-            // Adjusted hash for comparison
-            int adjustedHash = (hash + seed) % 32;
-            int expectedHash = (nSumDiv4 % 4) + (nDiffDiv4 % 4) * 4;
-
-            // TODO: Is Land Tile
-            return adjustedHash == expectedHash;
-        }
-
         public bool HasShield { get; }
         
-        private GoodyHut? _goodyHut = new GoodyHut();
+        private GoodyHut? _goodyHut;
         public bool IsGoodyHutTile { get; private set; }
-        public bool HasGoodyHut { get { return _goodyHut != null;  } }      
+        public bool HasGoodyHut 
+        {
+            get 
+            { 
+                return IsGoodyHutTile && _goodyHut != null;
+            }
+        }
+        
         public void ConsumeGoodyHut(Unit unit)
         {
             _goodyHut?.Trigger(unit);
@@ -154,8 +132,6 @@ namespace Civ2engine.MapObjects
             int rez = (X - (Y % 2) + rez3) % 8;
             return rez < 4;
         }
-
-
 
         // From RULES.TXT
         public string Name => _terrain.Name;

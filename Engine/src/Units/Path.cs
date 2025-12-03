@@ -187,6 +187,12 @@ public class Path
                     game.TriggerMapEvent(MapEventType.UpdateMap, neighbours);
                 }
                 game.TriggerUnitEvent(new MovementEventArgs(unit, tileFrom, tileTo));
+
+                if(tileTo.HasGoodyHut)
+                {
+                    tileTo.ConsumeGoodyHut(unit);
+                    game.TriggerMapEvent(MapEventType.UpdateMap, new List<Tile> { tileTo });
+                }
             }
         } while (unit.MovePoints > 0 && pos < Tiles.Length &&
                  !MovementFunctions.IsNextToEnemy(unit.CurrentLocation!, unit.Owner, unit.Domain));
