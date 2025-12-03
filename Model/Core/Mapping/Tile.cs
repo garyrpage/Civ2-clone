@@ -80,11 +80,19 @@ namespace Civ2engine.MapObjects
                 Special = (d & a) == (d & b) ? 1 : 0;
             }
 
-            IsGoodyHutTile = GoodyHutAlgo2(seed);
-            Console.WriteLine("Has GoodyHut: " + IsGoodyHutTile);
+            IsGoodyHutTile = terrain.Type != TerrainType.Ocean && GoodyHutAlgo2(seed);
+            string line = $"Tile ({x}, {y}) - Terrain: {terrain.Type} Has GoodyHut: {IsGoodyHutTile}";
+
+            File.AppendAllText(LogFilePath, line + "\n");
 
             // Terrain must be set after special to get the correct EffectiveTerrain type for specials
             Terrain = terrain;
+        }
+
+        private static readonly string LogFilePath = "game_log.txt";
+
+        public static void LogTile(int x, int y, bool hasGoodyHut)
+        {
         }
 
         private bool GoodyHutAlgo2(int seed)
