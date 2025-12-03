@@ -11,7 +11,7 @@ namespace Model.Core.GoodyHuts.Outcomes
     {
         public string Name => "Barbarians";
         public string Description => "You have unleashed a horde of barbarians!";
-        public override void ApplyOutcome(Unit unit)
+        public override GoodyHutOutcomeResult ApplyOutcome(Unit unit)
         {
             throw new NotImplementedException();
         }

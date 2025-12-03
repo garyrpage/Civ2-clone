@@ -11,7 +11,7 @@ namespace Model.Core.GoodyHuts.Outcomes
     {
         public string Name => "Abandoned Village";
         public string Description => "Weeds grow in empty ruins.  This village has long\r\nbeen abandoned.";
-        public override void ApplyOutcome(Unit unit)
+        public override GoodyHutOutcomeResult ApplyOutcome(Unit unit)
         {
             throw new NotImplementedException();
         }

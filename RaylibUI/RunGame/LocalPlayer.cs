@@ -1,10 +1,12 @@
 using Civ2engine;
 using Civ2engine.Advances;
+using Civ2engine.Events;
 using Civ2engine.MapObjects;
 using Civ2engine.Production;
 using Civ2engine.Units;
 using Model.Core;
 using Model.Core.Advances;
+using Model.Events;
 using Model.Interface;
 
 namespace RaylibUI.RunGame;
@@ -159,5 +161,39 @@ public class LocalPlayer : IPlayer
         {
             _gameScreen.ActiveMode = _gameScreen.Moving;
         }
+    }
+    public void SubscribeToUnitEvents(IGame game)
+    {
+        game.OnUnitEvent += HandleUnitEvent;
+    }
+
+    private void HandleUnitEvent(object? sender, UnitEventArgs args)
+    {
+        if (args is GoodyHutOutcomeEventArgs outcomeArgs && outcomeArgs.Unit.Owner == Civilization)
+        {
+            GoodyHutOutcomeReceived(outcomeArgs);
+        }
+    }
+
+    public void GoodyHutOutcomeReceived(GoodyHutOutcomeEventArgs args)
+    {
+        var outcomeType = args.Outcome.OutcomeType;
+        var message = args.Outcome.Message;
+
+        var popupName = outcomeType switch
+        {
+            "Gold" => "SURPRISEMETALS",
+            "Scrolls" => "SURPRISESCROLLS",
+            "Tribe" => "SURPRISENOMADS", //SURPRISETRIBE
+            "Barbarians" => "SURPRISEBARB",
+            "AbandonedVillage" => "SURPRISENOTHING",
+            "Mercenaries" => "SURPRISEMERCS",
+            _ => "GOODYHUT_DEFAULT"
+        };
+
+        _gameScreen.ShowPopup(popupName);
+            // TODO: Image dialogImage: new(new[] { _active.PicSources["cityBuiltAncient"][0] }));
+            // TODO: Number substitutions
+
     }
 }

@@ -16,12 +16,12 @@ namespace Model.Core.GoodyHuts
             // Barbarians
         }
 
-        public void Trigger(Unit unit)
+        public GoodyHutOutcomeResult Trigger(Unit unit)
         {
             // Base chance of each outcome is equal. Certain game circumstances modify this ratio.
             // https://apolyton.net/forum/civilization-series/civilization-i-and-civilization-ii/82184-a-study-of-hut-outcomes
             var outcome = _outcomes[new Random().Next(0, _outcomes.Count)];
-            outcome.ApplyOutcome(unit);
+            return outcome.ApplyOutcome(unit);
         }
     }
 }

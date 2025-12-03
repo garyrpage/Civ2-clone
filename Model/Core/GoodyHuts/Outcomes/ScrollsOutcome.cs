@@ -11,7 +11,7 @@ namespace Model.Core.GoodyHuts.Outcomes
     {
         public string Name => "Scrolls";
         public string Description => "You have discovered scrolls of ancient wisdom.";
-        public override void ApplyOutcome(Unit unit)
+        public override GoodyHutOutcomeResult ApplyOutcome(Unit unit)
         {
             throw new NotImplementedException();
         }

@@ -97,6 +97,10 @@ public class GameScreen : BaseScreen
         VisibleCivId = _player.Civilization.Id;
         game.ConnectPlayer(_player);
 
+        // Subscribe to unit events
+        // TODO: There might be a better place to do this, as we also need AI players to have the outceoms, but no ui..
+        _player.SubscribeToUnitEvents(game);
+
         _ToTPanelLayout = false;
         _miniMapHeight = Math.Max(100, game.Maps[_player.ActiveTile.Z].YDim) + 38 + 11;
 

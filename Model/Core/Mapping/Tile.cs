@@ -2,6 +2,7 @@ using Civ2engine.Terrains;
 using Civ2engine.Units;
 using Model.Core;
 using Model.Core.GoodyHuts;
+using Model.Core.GoodyHuts.Outcomes;
 using Model.Core.Mapping;
 
 namespace Civ2engine.MapObjects
@@ -117,10 +118,11 @@ namespace Civ2engine.MapObjects
             }
         }
         
-        public void ConsumeGoodyHut(Unit unit)
+        public GoodyHutOutcomeResult ConsumeGoodyHut(Unit unit)
         {
-            _goodyHut?.Trigger(unit);
+            var outcome = _goodyHut?.Trigger(unit);
             _goodyHut = null; // Consume / remove the goody hut from the game.
+            return outcome;
         }
 
         private bool HasSheild()

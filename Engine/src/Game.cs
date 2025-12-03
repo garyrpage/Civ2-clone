@@ -9,6 +9,7 @@ using Civ2engine.Scripting;
 using Civ2engine.Units;
 using Model;
 using Model.Core;
+using Model.Events;
 
 namespace Civ2engine
 {
