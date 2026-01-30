@@ -3,6 +3,8 @@ using Civ2engine.MapObjects;
 using Civ2engine.Units;
 using Model.Constants;
 using Model;
+using Model.Core;
+using Model.Core.Units;
 
 namespace Civ2engine.OriginalSaves
 {
@@ -14,5 +16,7 @@ namespace Civ2engine.OriginalSaves
         public List<Transporter> Transporters { get; set; }
         public List<Civilization> Civilizations { get; set; }
         public List<Map> Maps { get; set; }
+        public IGameData GameData { get; set; }
+        public Options Options { get; set; }
     }
 }

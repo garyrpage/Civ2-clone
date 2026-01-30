@@ -38,25 +38,26 @@ public class StatusPanel : BaseControl
     {
         var yOffset = 1;
 
-        var populText = _game.GetPlayerCiv.Cities.Count == 0 ? "0 " + Labels.For(LabelIndex.People) : _game.GetPlayerCiv.Cities.Sum(c=>c.GetPopulation()).ToString("###,###,###",
-                    new NumberFormatInfo() { NumberDecimalSeparator = "," }) + " " + Labels.For(LabelIndex.People);
+        var populText = _game.GetPlayerCiv.Cities.Count == 0 ? "0 " + Labels.For(LabelIndex.People) : 
+            _game.GetPlayerCiv.Cities.Sum(c=>c.GetPopulation()).ToString("###,###,###", 
+            new NumberFormatInfo() { NumberDecimalSeparator = "," }) + " " + Labels.For(LabelIndex.People);
         
-        var populLabel = new StatusLabel(_gameScreen, populText);
-        populLabel.Offset = 8;
+        var populLabel = new StatusLabel(_gameScreen, populText, alignment: TextAlignment.Right);
+        populLabel.Padding = new(0, 8, 0, 0);
         populLabel.Bounds = _infoPanelBounds with { Y = _infoPanelBounds.Y + yOffset, Height = populLabel.GetPreferredHeight() };
 
         var labelHeight = 18;
 
         var yearLabel = new StatusLabel(_gameScreen, _game.Date.GameYearString(_game.TurnNumber));
-        yearLabel.Offset = 8;
+        yearLabel.Padding = new(0, 8, 0, 0);
         yearLabel.Bounds = _infoPanelBounds with { Y = _infoPanelBounds.Y + yOffset + labelHeight, Height = yearLabel.GetPreferredHeight() };
 
         var goldLabel = new StatusLabel(_gameScreen, $"{_game.GetPlayerCiv.Money} {Labels.For(LabelIndex.Gold)}  {_game.GetPlayerCiv.TaxRate / 10}.{_game.GetPlayerCiv.LuxRate / 10}.{_game.GetPlayerCiv.ScienceRate / 10}");
-        goldLabel.Offset = 8;
+        goldLabel.Padding = new (0, 8, 0, 0);
         goldLabel.Bounds = _infoPanelBounds with { Y = _infoPanelBounds.Y + yOffset + 2 * labelHeight, Height = goldLabel.GetPreferredHeight() };
 
         var turnsLabel = new StatusLabel(_gameScreen, $"{Labels.For(LabelIndex.Turn)} {_game.TurnNumber}", TextAlignment.Right);
-        turnsLabel.Offset = 8;
+        turnsLabel.Padding = new (0, 8, 0, 0);
         turnsLabel.Bounds = _infoPanelBounds with { Y = _infoPanelBounds.Y + yOffset + 2 * labelHeight, Height = turnsLabel.GetPreferredHeight() };
 
         var iconNo = 0; // TODO: determine one of 4 icons based on current research progress (0...25%, 25...50%, 50...75%, 75...100%)
@@ -65,7 +66,7 @@ public class StatusPanel : BaseControl
             researchIconLoc = new Vector2(_infoPanelBounds.X + 7, _infoPanelBounds.Y + 72);
         var researchIcon = new TextureDisplay(_gameScreen, TextureCache.GetImage(_active.PicSources["researchProgress"][iconNo]), researchIconLoc, scale: 1.5f);
 
-        Children = new List<IControl>() { populLabel, yearLabel, goldLabel, turnsLabel, researchIcon };
+        Children = new List<IControl>() { _headerLabel, populLabel, yearLabel, goldLabel, turnsLabel, researchIcon };
 
         // TODO: find out when global warming icon is shown (it's based on no of skull icons on map)
         if (true)
@@ -92,6 +93,8 @@ public class StatusPanel : BaseControl
 
     public override void OnResize()
     {
+        _headerLabel.Visible = !_gameScreen.ToTPanelLayout;
+
         if (_gameScreen.ToTPanelLayout)
         {
             _padding = _active.GetPadding(0, false);
@@ -125,29 +128,11 @@ public class StatusPanel : BaseControl
     {
         Graphics.DrawRectangle((int)Location.X, (int)Location.Y, Width, Height, Color.Black);
         Graphics.DrawTexture(_backgroundImage.Value,(int)Location.X, (int)Location.Y, Color.White);
-        if (!_gameScreen.ToTPanelLayout)
-        {
-            _headerLabel.Draw(pulse);
-        }
+
         base.Draw(pulse);
-        if (Children != null)
-        {
-            foreach (var control in Children)
-            {
-                control.Draw(pulse);
-            }
-        }
 
         // AI turn civ indicator
         if (_game.GetPlayerCiv != _game.GetActiveCiv)
             Graphics.DrawRectangleRec(new Rectangle(_unitPanelBounds.X + _unitPanelBounds.Width - 8, _unitPanelBounds.Y + _unitPanelBounds.Height - 6, 8, 6), _active.PlayerColours[_game.GetActiveCiv.Id].LightColour);
-    }
-}
-
-public class StatusLabel : LabelControl
-{
-    public StatusLabel(IControlLayout layout, string text, TextAlignment alignment = TextAlignment.Left, Color[]? switchColors = null, int switchTime = 0, int fontSize = 18) : base(layout, text, true, offset: 0, alignment: alignment, defaultHeight: 18, font: layout.MainWindow.ActiveInterface.Look.StatusPanelLabelFont, fontSize: fontSize, spacing: 0f, colorFront: layout.MainWindow.ActiveInterface.Look.StatusPanelLabelColor, colorShadow: layout.MainWindow.ActiveInterface.Look.StatusPanelLabelColorShadow, shadowOffset: new System.Numerics.Vector2(1,1), switchColors: switchColors, switchTime: switchTime)
-    {
-
     }
 }

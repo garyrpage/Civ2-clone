@@ -15,18 +15,7 @@ namespace Civ2engine
 {
     public partial class Game
     {
-        public static Game Create(Rules rules, IGameData gameData, ILoadedGameObjects objects, Ruleset ruleset, Options options)
-        {
-            return new Game(rules, gameData, objects, ruleset.Paths, options);
-        }
-
-        public static Game StartNew(Map[] maps, GameInitializationConfig config, IList<Civilization> civilizations,
-            string[] paths)
-        {
-            return new Game(maps, config.Rules, civilizations, new Options(config), paths, config.DifficultyLevel, config.BarbarianActivity);
-        }
-
-        private Game(Map[] maps, Rules configRules, IList<Civilization> civilizations, Options options,
+        public Game(Map[] maps, Rules configRules, IList<Civilization> civilizations, Options options,
             string[] gamePaths, int difficulty, int barbarianActivity)
         {
             Script = new ScriptEngine(this, gamePaths);
@@ -69,14 +58,17 @@ namespace Civ2engine
             this.SetupTech();
             
             Power.CalculatePowerRatings(this);
+
+            History = HistoryUtils.ReconstructHistory(this);
         }
 
-        private Game(Rules rules, IGameData gameData, ILoadedGameObjects objects, string[] rulesetPaths, Options options) 
-            : this(objects.Maps.ToArray(), rules,objects.Civilizations,options, 
-                  rulesetPaths, gameData.DifficultyLevel, gameData.BarbarianActivity)
+        public Game(Rules rules, ILoadedGameObjects objects, string[] rulesetPaths)
+            : this(objects.Maps.ToArray(), rules, objects.Civilizations, objects.Options,
+                  rulesetPaths, objects.GameData.DifficultyLevel, objects.GameData.BarbarianActivity)
         {
             _scenarioData = objects.Scenario;
 
+            var gameData = objects.GameData;
             TurnNumber = gameData.TurnNumber;
             Date = new Date(gameData.StartingYear, gameData.TurnYearIncrement, gameData.DifficultyLevel);
 
@@ -101,7 +93,25 @@ namespace Civ2engine
 
             _activeCiv = playerCiv;
             AllCities.AddRange(objects.Cities);
-            
+            if (gameData.CitiesBuiltSoFar == null)
+            {
+                foreach (Civilization civ in AllCivilizations)
+                {
+                    CitiesBuiltSoFar[civ] = 0;
+                }
+            } else {
+                for (int tribeN = 0; tribeN < gameData.CitiesBuiltSoFar.Length; tribeN++)
+                {
+                    int citiesBuilt = gameData.CitiesBuiltSoFar[tribeN];
+                    Civilization? civ = AllCivilizations.Find(
+                        civ => civ.TribeId == tribeN && civ.PlayerType != PlayerType.Barbarians);
+                    if (civ != null)
+                    {
+                        CitiesBuiltSoFar[civ] = citiesBuilt;
+                    }
+                }
+            }
+
             for (var index = 0; index < _maps.Length; index++)
             {
                 var map = _maps[index];
@@ -144,6 +154,8 @@ namespace Civ2engine
                 city.SetUnitSupport(government);
                 city.CalculateOutput(city.Owner.Government, this);
             }
+
+            History = HistoryUtils.ReconstructHistory(this);
         }
     }
 }

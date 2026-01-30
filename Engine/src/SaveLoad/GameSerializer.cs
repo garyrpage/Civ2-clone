@@ -12,6 +12,7 @@ using Civ2engine.SaveLoad.SerializationUtils;
 using Civ2engine.Units;
 using Model.Core;
 using Model.Core.Cities;
+using Model.Core.Units;
 
 namespace Civ2engine.SaveLoad;
 
@@ -43,7 +44,7 @@ public class GameSerializer
         writer.WriteStartObject("game");
         writer.WriteNonDefaultFields("opts", game.Options);
         writer.WriteNonDefaultFields("data", new JsonGameData(game));
-        var encoder = new ImprovementEncoder(game.TerrainImprovements);
+        var encoder = game.ImprovementEncoder;
         writer.WriteStartObject("encoder");
         foreach (var pair in encoder.EncoderData)
         {
@@ -96,8 +97,6 @@ public class GameSerializer
 
     public static IGame Read(JsonElement gameElement, Ruleset activeRuleSet, Rules rules)
     {
-        var options = JsonSerializer.Deserialize<Options>(gameElement.GetProperty("opts").GetRawText());
-        var gameData = JsonSerializer.Deserialize<JsonGameData>(gameElement.GetProperty("data").GetRawText());
         ImprovementEncoder? improvementEncoder = null;
         if (gameElement.TryGetProperty("encoder", out var encoderElement))
         {
@@ -109,7 +108,9 @@ public class GameSerializer
             Maps = MapSerializer.Read(gameElement.GetProperty("maps"), rules, improvementEncoder),
             Civilizations = new [] {Barbarians.Civilization}
                 .Concat(gameElement.GetProperty("civs").Deserialize<JsonCivData[]>()
-                    .Select((cd,index) => HydrateCiv(cd,index +1, rules))).ToList()
+                    .Select((cd,index) => HydrateCiv(cd,index +1, rules))).ToList(),
+            Options = JsonSerializer.Deserialize<Options>(gameElement.GetProperty("opts").GetRawText()),
+            GameData = JsonSerializer.Deserialize<JsonGameData>(gameElement.GetProperty("data").GetRawText())
         };
         
         // Hydrate Cities
@@ -135,7 +136,7 @@ public class GameSerializer
             }
         }
 
-        return Game.Create(rules, gameData, gameObjects, activeRuleSet, options);
+        return new Game(rules, gameObjects, activeRuleSet.Paths);
     }
 
     private static Unit HydrateUnit(JsonUnitData unitData, Rules rules, List<Map> maps, List<Civilization> civilizations, List<City> cities)
@@ -168,6 +169,13 @@ public class GameSerializer
             CaravanCommodity = unitData.Commodity,
             Counter = unitData.Counter
         };
+        if (unitData.ExtendedData != null)
+        {
+            foreach (var keyValuePair in unitData.ExtendedData)
+            {
+                unit.ExtendedData[keyValuePair.Key] = keyValuePair.Value;
+            }
+        }
         
         civilization.Units.Add(unit);
         return unit;
@@ -245,8 +253,15 @@ public class GameSerializer
         
         tile.CityHere = city;
 
-        for (var improvementNo = 0; improvementNo < cityData.Improvements.Length && improvementNo < rules.Improvements.Length -1; improvementNo++)
-            if (cityData.Improvements[improvementNo]) city.AddImprovement(rules.Improvements[improvementNo+1]);
+        if (cityData.Improvements != null)
+        {
+            for (var improvementNo = 0;
+                 improvementNo < cityData.Improvements.Length && improvementNo < rules.Improvements.Length - 1;
+                 improvementNo++)
+                if (cityData.Improvements[improvementNo])
+                    city.AddImprovement(rules.Improvements[improvementNo + 1]);
+        }
+
         return city;
     }
 

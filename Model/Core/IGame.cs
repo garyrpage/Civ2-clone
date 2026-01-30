@@ -1,10 +1,11 @@
-using System.Collections;
 using Civ2engine;
 using Civ2engine.Enums;
 using Civ2engine.Events;
 using Civ2engine.MapObjects;
 using Civ2engine.Units;
+using Model.Core.Units;
 using Model.Events;
+using System.Collections;
 
 namespace Model.Core;
 
@@ -13,7 +14,7 @@ public interface IGame
     FastRandom Random { get;  }
     Civilization GetPlayerCiv { get; }
     IDictionary<int,TerrainImprovement> TerrainImprovements { get; }
-    
+    IImprovementEncoder ImprovementEncoder { get; }
     Rules Rules { get; }
     Civilization GetActiveCiv { get; }
     Options Options { get; }
@@ -25,10 +26,10 @@ public interface IGame
     IList<Map> Maps { get; }
     IHistory History { get; }
     Dictionary<string, List<string>?> CityNames { get; }
+    Dictionary<Civilization, int> CitiesBuiltSoFar { get; }
+
     void ConnectPlayer(IPlayer player);
     string Order2String(int unitOrder);
-    
-    event EventHandler<PlayerEventArgs> OnPlayerEvent;
     void ChooseNextUnit();
     bool ProcessEndOfTurn();
     void ChoseNextCiv();
@@ -46,11 +47,11 @@ public interface IGame
     int BarbarianActivity { get; }
     int NoMaps { get; }
     List<Civilization> AllCivilizations { get; }
-
-    event EventHandler<UnitEventArgs> OnUnitEvent;
-    void TriggerUnitEvent(UnitEventType eventType, IUnit triggerUnit, BlockedReason reason = BlockedReason.NotBlocked);
-    void TriggerUnitEvent(UnitEventArgs combatEventArgs);
     void SetHumanPlayer(int playerCivId);
     void StartPlayerTurn(IPlayer activePlayer);
     void StartNextTurn();
-}   
+
+    //TODO: Remove/fold back into master branch properly
+    event EventHandler<UnitEventArgs> OnUnitEvent;
+    void TriggerUnitEvent(UnitEventArgs combatEventArgs);
+}

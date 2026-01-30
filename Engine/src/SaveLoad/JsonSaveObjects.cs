@@ -3,6 +3,8 @@ using Civ2engine.MapObjects;
 using Civ2engine.OriginalSaves;
 using Civ2engine.Units;
 using Model;
+using Model.Core;
+using Model.Core.Units;
 
 namespace Civ2engine.SaveLoad;
 
@@ -15,4 +17,6 @@ public class JsonSaveObjects : ILoadedGameObjects
     public List<Transporter> Transporters { get; set; }
     public List<Civilization> Civilizations { get; set; }
     public List<Map> Maps { get; set; }
+    public IGameData GameData { get; set; }
+    public Options Options { get; set; }
 }

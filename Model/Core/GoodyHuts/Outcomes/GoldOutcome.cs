@@ -1,5 +1,4 @@
-﻿using Civ2engine.Units;
-using System.Diagnostics.Metrics;
+﻿using Model.Core.Units;
 
 namespace Model.Core.GoodyHuts.Outcomes
 {

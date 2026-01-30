@@ -1,14 +1,10 @@
-using System.Runtime.CompilerServices;
 using Civ2engine;
 using Civ2engine.Enums;
 using Civ2engine.Events;
-using Civ2engine.IO;
 using Civ2engine.MapObjects;
-using Civ2engine.Units;
 using Model;
 using Model.Core;
 using Model.Dialog;
-using Model.Images;
 using Model.Interface;
 using Model.Menu;
 using Raylib_CSharp.Windowing;
@@ -19,7 +15,7 @@ using RaylibUI.RunGame.GameControls.CityControls;
 using RaylibUI.RunGame.GameControls.Mapping;
 using RaylibUI.RunGame.GameControls.Menu;
 using RaylibUI.RunGame.GameModes;
-using RaylibUI.RunGame.GameModes.Orders;
+using RaylibUI.Initialization;
 using Raylib_CSharp.Interact;
 
 namespace RaylibUI.RunGame;
@@ -35,7 +31,7 @@ public class GameScreen : BaseScreen
     private readonly StatusPanel _statusPanel;
     private readonly LocalPlayer _player;
     private readonly GameMenu _menu;
-    private bool _ToTPanelLayout;
+    private bool _ToTPanelLayout, _minimapGlobe, _showGrid;
 
     public IGameMode ActiveMode
     {
@@ -48,7 +44,10 @@ public class GameScreen : BaseScreen
             }
         }
     }
-    
+
+    public int MinimapHeight => _minimapGlobe ? MiniMapGlobeHeight : Math.Max(100, CurrentMap.YDim) + 38 + 11;
+    public int MinimapWidth => _minimapGlobe ? MiniMapGlobeWidth : MiniMapNormalWidth;
+
     public int Zoom     // -7 (min) ... 8 (max), 0=std.
     {
         get => _zoom;
@@ -60,12 +59,15 @@ public class GameScreen : BaseScreen
 
     public StatusPanel StatusPanel => _statusPanel;
     public bool ToTPanelLayout => _ToTPanelLayout;
+    public bool MinimapGlobe => _minimapGlobe;
+    public bool ShowGrid => _showGrid;
     public GameMenu MenuBar => _menu;
     public IGameMode Moving { get; }
     public IGameMode ViewPiece { get; }
 
-    private const int MiniMapWidth = 262;
-    private readonly int _miniMapHeight;
+    private const int MiniMapNormalWidth = 262;
+    private const int MiniMapGlobeWidth = 134;
+    private const int MiniMapGlobeHeight = 142;
     private IGameMode _activeMode;
     
     private CivDialog _currentPopupDialog;
@@ -102,7 +104,8 @@ public class GameScreen : BaseScreen
         _player.SubscribeToUnitEvents(game);
 
         _ToTPanelLayout = false;
-        _miniMapHeight = Math.Max(100, game.Maps[_player.ActiveTile.Z].YDim) + 38 + 11;
+        //TODO: What was this for?
+        //_miniMapHeight = Math.Max(100, game.Maps[_player.ActiveTile.Z].YDim) + 38 + 11;
 
         var commands = SetupCommands(game);
         var menuElements = main.ActiveInterface.ConfigureGameCommands(commands);
@@ -124,16 +127,18 @@ public class GameScreen : BaseScreen
         var menuHeight = _menu.GetPreferredHeight();
         
         _statusPanel = new StatusPanel(this, game);
-        _minimapPanel = new MinimapPanel(this, game);
+        _minimapPanel = new MinimapPanel(this, game, _player);
 
-        var mapWidth = width - MiniMapWidth;
+        _ToTPanelLayout = commands.Any(c => c.Id == CommandIds.MapLayoutToggle && c.Command is not null);   // Command for map layout change only in ToT
+        _minimapGlobe = _ToTPanelLayout;
+        var mapWidth = width - MinimapWidth;
         var mapRect = new Rectangle(0, menuHeight, mapWidth, height - menuHeight);
         if (_ToTPanelLayout)
         {
             mapWidth = width;
-            mapRect = new Rectangle(0, menuHeight + _miniMapHeight, mapWidth, height - menuHeight - _miniMapHeight);
+            mapRect = new Rectangle(0, menuHeight + MinimapHeight, mapWidth, height - menuHeight - MinimapHeight);
         }
-        _mapControl = new MapControl(this, game, mapRect);
+        _mapControl = new MapControl(this, game, mapRect, _player);
 
         // The order of these is important as MapControl can overdraw so must be drawn first
         Controls.Add(_mapControl);
@@ -202,7 +207,7 @@ public class GameScreen : BaseScreen
             Focused = MenuBar.Children!.First();
             return;
         }
-        var command = new Shortcut(key, Input.IsKeyDown(KeyboardKey.RightShift) ||
+        var command = new Shortcut(key.ToModelKey(), Input.IsKeyDown(KeyboardKey.RightShift) ||
                                         Input.IsKeyDown(KeyboardKey.LeftShift)
             , Input.IsKeyDown(KeyboardKey.LeftControl) ||
               Input.IsKeyDown(KeyboardKey.RightControl)
@@ -230,16 +235,16 @@ public class GameScreen : BaseScreen
     {
         _menu.GetPreferredWidth();
         var menuHeight = _menu.GetPreferredHeight();
-        var mapWidth = width - MiniMapWidth;
+        var mapWidth = width - MinimapWidth;
         var mapControlRect = new Rectangle(0, menuHeight, mapWidth, height - menuHeight);
-        var minimapRect = new Rectangle(mapWidth, menuHeight, MiniMapWidth, _miniMapHeight);
-        var statusRect = new Rectangle(mapWidth, _miniMapHeight + menuHeight, MiniMapWidth, height - _miniMapHeight - menuHeight);
+        var minimapRect = new Rectangle(mapWidth, menuHeight, MinimapWidth, MinimapHeight);
+        var statusRect = new Rectangle(mapWidth, MinimapHeight + menuHeight, MinimapWidth, height - MinimapHeight - menuHeight);
         if (_ToTPanelLayout)
         {
             mapWidth = width;
-            mapControlRect = new Rectangle(0, menuHeight + _miniMapHeight, mapWidth, height - menuHeight - _miniMapHeight);
-            minimapRect = new Rectangle(mapWidth - MiniMapWidth, menuHeight, MiniMapWidth, _miniMapHeight);
-            statusRect = new Rectangle(0, menuHeight, mapWidth - MiniMapWidth, _miniMapHeight);
+            mapControlRect = new Rectangle(0, menuHeight + MiniMapGlobeHeight, mapWidth, height - menuHeight - MiniMapGlobeHeight);
+            minimapRect = new Rectangle(mapWidth - MinimapWidth, menuHeight, MinimapWidth, MinimapHeight);
+            statusRect = new Rectangle(0, menuHeight, mapWidth - MinimapWidth, MiniMapGlobeHeight);
         }
         _menu.Bounds = new Rectangle(0, 0, width, menuHeight);
         _mapControl.Bounds = mapControlRect;
@@ -366,7 +371,26 @@ public class GameScreen : BaseScreen
     public void ToggleMapLayout()
     {
         _ToTPanelLayout = !_ToTPanelLayout;
+        _minimapGlobe = _ToTPanelLayout;
         Resize(Window.GetScreenWidth(), Window.GetScreenHeight());
+    }
+
+    public void RemoveGlobe()
+    {
+        _minimapGlobe = false;
+        Resize(Window.GetScreenWidth(), Window.GetScreenHeight());
+    }
+
+    public void ShowGlobe()
+    {
+        _minimapGlobe = true;
+        Resize(Window.GetScreenWidth(), Window.GetScreenHeight());
+    }
+
+    public void ShowMapGrid()
+    {
+        _showGrid = !_showGrid;
+        ForceRedraw();
     }
 
     public void TurnStarting(int turnNumber)

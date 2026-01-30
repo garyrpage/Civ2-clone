@@ -7,6 +7,7 @@ using Civ2engine.Production;
 using Civ2engine.Units;
 using Model.Constants;
 using Model.Core;
+using Model.Core.Units;
 
 namespace Civ2engine.UnitActions
 {
@@ -14,7 +15,7 @@ namespace Civ2engine.UnitActions
     {
         public static string GetCityName(Civilization civ , IGame game)
         {
-            var cityCount = game.History.TotalCitiesBuilt(civ.Id);
+            var cityCount = game.CitiesBuiltSoFar.GetValueOrDefault(civ, (byte) 0);
             var names = game.CityNames;
             var tribe = civ.TribeName.ToUpperInvariant();
             var civCityList = names[names.ContainsKey(tribe) ? tribe : "EXTRA"];
@@ -26,8 +27,9 @@ namespace Civ2engine.UnitActions
             return "Dummy Name";
         }
 
-        public static City BuildCity(Tile tile, Unit unit, IGame game, string name)
+        public static City BuildCity(Unit unit, IGame game, string name)
         {
+            var tile = unit.CurrentLocation;
             var initialProduction = ProductionOrder.GetAll(game.Rules).MinBy(i => i.Cost);
             var city = new City
             {
@@ -37,7 +39,7 @@ namespace Civ2engine.UnitActions
                 Y = tile.Y,
                 Owner = unit.Owner,
                 Size = 1,
-                ItemInProduction = initialProduction,
+                ItemInProduction = initialProduction!,
                 WhoBuiltIt = unit.Owner,
             };
             tile.WorkedBy = city;
@@ -61,6 +63,8 @@ namespace Civ2engine.UnitActions
                 }
             }
             game.History.CityBuilt(tile.CityHere);
+            int currentCityCount = game.CitiesBuiltSoFar.GetValueOrDefault(city.Owner, 0);
+            game.CitiesBuiltSoFar[city.Owner] = currentCityCount + 1;
 
             city.AutoAddDistributionWorkers(game.Rules);
             city.CalculateOutput(city.Owner.Government, game);
@@ -76,11 +80,6 @@ namespace Civ2engine.UnitActions
             game.TriggerMapEvent(MapEventType.UpdateMap, new List<Tile> {tile});
 
             return city;
-        }
-
-        public static void AiBuildCity(Unit unit, Game game)
-        {
-            BuildCity(unit.CurrentLocation, unit, game, GetCityName(unit.Owner, game));
         }
     }
 }

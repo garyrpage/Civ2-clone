@@ -1,13 +1,14 @@
-using System.Drawing;
+using Model.Input;
 using Civ2engine;
 using Civ2engine.MapObjects;
+using JetBrains.Annotations;
 using Model.Menu;
-using Raylib_CSharp.Interact;
 using Point = Model.Point;
 
 namespace RaylibUI.RunGame.Commands.Cheat;
 
-public class RevealMap(GameScreen gameScreen) : AlwaysOnCommand(gameScreen, CommandIds.CheatRevealMapCommand, [new Shortcut(KeyboardKey.F2, shift: true)])
+[UsedImplicitly]
+public class RevealMap(GameScreen gameScreen) : AlwaysOnCommand(gameScreen, CommandIds.CheatRevealMapCommand, [new Shortcut(Key.F2, shift: true)])
 {
     private CivDialog? _revealMapDialog;
     private Tile? _cachedActive;
@@ -31,15 +32,15 @@ public class RevealMap(GameScreen gameScreen) : AlwaysOnCommand(gameScreen, Comm
     {
         if (button == Labels.Ok && (selection != GameScreen.VisibleCivId || GameScreen.CurrentMap.MapRevealed))
         {
-            GameScreen.CurrentMap.MapRevealed = selection > GameScreen.Game.AllCivilizations.Count;
+            foreach (var map in GameScreen.Game.Maps)
+            {
+                map.MapRevealed = selection > GameScreen.Game.AllCivilizations.Count;
+            }
             GameScreen.ActiveMode = GameScreen.ViewPiece;
         
             var civId = selection < GameScreen.Game.AllCivilizations.Count ? selection : GameScreen.Player.Civilization.Id;
             
-            if (_cachedActive == null)
-            {
-                _cachedActive = GameScreen.Player.ActiveTile;
-            }
+            _cachedActive ??= GameScreen.Player.ActiveTile;
 
             if (civId == GameScreen.Player.Civilization.Id)
             {

@@ -1,4 +1,3 @@
-using System.Numerics;
 using System.Text.RegularExpressions;
 using Civ2.Dialogs;
 using Civ2.Dialogs.NewGame;
@@ -11,28 +10,19 @@ using Model.Images;
 using Model.ImageSets;
 using Model.InterfaceActions;
 using Model.Menu;
-using Raylib_CSharp.Interact;
 using Raylib_CSharp.Transformations;
 using Raylib_CSharp.Images;
 using Raylib_CSharp.Textures;
-using RaylibUtils;
-using static Model.Menu.CommandIds;
-using Civ2.Dialogs.Scenario;
-using Civ2engine.OriginalSaves;
 using Model.Constants;
 using Model.Core;
 using Model.Core.Advances;
 using Model.Dialog;
+using Model.Input;
 
 namespace Civ2;
 
-public abstract class Civ2Interface : IUserInterface
+public abstract class Civ2Interface(IMain main) : IUserInterface
 {
-    protected Civ2Interface(IMain main)
-    {
-        MainApp = main;
-    }
-    
     public bool CanDisplay(string? title)
     {
         return title != null && title.Contains(Title);
@@ -49,8 +39,7 @@ public abstract class Civ2Interface : IUserInterface
         var extraPopups = new List<string> { "SCENCHOSECIV", "SCENINTRO", "SCENCUSTOMINTRO" };
         foreach (var popup in extraPopups)
         {
-            Dictionary<string, PopupBox?> popup2 = new() { { popup, new PopupBox() } };
-            Dialogs.Add(popup2.Keys.First(), popup2.Values.First());
+            Dialogs.Add(popup, new PopupBox());
         }
         foreach (var value in Dialogs.Values)
         {
@@ -96,22 +85,22 @@ public abstract class Civ2Interface : IUserInterface
             4 => citySize switch
             {
                 <= 4 => 0,
-                > 4 and <= 7 => 1,
-                > 7 and <= 10 => 2,
+                <= 7 => 1,
+                <= 10 => 2,
                 _ => 3
             },
             5 => citySize switch
             {
                 <= 4 => 0,
-                > 4 and <= 10 => 1,
-                > 10 and <= 18 => 2,
+                <= 10 => 1,
+                <= 18 => 2,
                 _ => 3
             },
             _ => citySize switch
             {
                 <= 3 => 0,
-                > 3 and <= 5 => 1,
-                > 5 and <= 7 => 2,
+                <= 5 => 1,
+                <= 7 => 2,
                 _ => 3
             }
         };
@@ -128,13 +117,13 @@ public abstract class Civ2Interface : IUserInterface
 
         return index;
     }
-    public List<TerrainSet> TileSets { get; } = new();
+    public List<TerrainSet> TileSets { get; } = [];
 
     public CityImageSet CityImages { get; } = new();
 
     public UnitSet UnitImages { get; } = new();
 
-    public Dictionary<string, PopupBox?> Dialogs { get; set; }
+    public Dictionary<string, PopupBox> Dialogs { get; set; }
     public abstract void LoadPlayerColours();
     public PlayerColour[] PlayerColours { get; set; }
     public int ExpectedMaps { get; set; } = 1;
@@ -156,7 +145,23 @@ public abstract class Civ2Interface : IUserInterface
         var map = MenuMap;
         foreach (var menu in map)
         {
-            var menuContent = new DropdownMenuContents { Commands = new List<MenuCommand>()};
+            // Find rows with separator and remove them
+            List<int> separatorRows = [];
+            for (var i = 0; i < menu.Defaults.Count; i++)
+            {
+                if (menu.Defaults[i].MenuText == "-")
+                {
+                    separatorRows.Add(i);
+                }
+            }
+            for (var i = separatorRows.Count; i-- > 0;)
+            {
+                menu.Defaults.RemoveAt(separatorRows[i]);
+                separatorRows[i] -= i + 2;
+            }
+
+            //separatorRows = new List<int> { 0, 1, 2, 3, 4, 5, 6 };
+            var menuContent = new DropdownMenuContents { Commands = new List<MenuCommand>(), SeparatorRows = separatorRows.ToArray() };
             var loaded = MenuLoader.For(menu.Key);
             if (loaded.Count > 0)
             {
@@ -170,7 +175,7 @@ public abstract class Civ2Interface : IUserInterface
             }
 
             var loadIndex = 0;
-            for (int i = 1; i < menu.Defaults.Count; i++)
+            for (var i = 1; i < menu.Defaults.Count; i++)
             {
                 var baseCommand = menu.Defaults[i];
                 var content = loaded.Count > i ? loaded[i] : baseCommand;
@@ -184,7 +189,7 @@ public abstract class Civ2Interface : IUserInterface
                     {
                         menuContent.Commands.Add(new MenuCommand(
                             baseCommand.MenuText.Replace(
-                                "%STRING0", gameCommand.Name), KeyboardKey.Null,
+                                "%STRING0", gameCommand.Name), Key.None,
                             gameCommand.ActivationKeys[0], gameCommand));
                     }
 
@@ -215,19 +220,27 @@ public abstract class Civ2Interface : IUserInterface
         const float buyButtonWidth = 68;
         const int infoButtonWidth = 57;
 
-        _cityWindowLayout = new CityWindowLayout(new BitmapStorage("city"))
+        _cityWindowLayout = new CityWindowLayout(new BitmapStorage("city", new Rectangle(0, 0, 640, 421)))
         {
-            Height = 420, Width = 640,
-            InfoPanel = new Rectangle(197, 216, 233, 198),
+            Height = 421, Width = 636,
+            InfoPanel = new Rectangle(193, 216, 242, 198),
             TileMap = new Rectangle(7, 65, 188, 137),
-            FoodStorage = new Rectangle(452, 0, 165, 162),
+            FoodStorage = new Rectangle(437, 0, 195, 163),
+            Production = new()
+            {
+                Type = "Box",
+                Box = new Rectangle(437, 165, 195, 191),
+                BuyButtonBounds = new Rectangle(442, 181, buyButtonWidth, buttonHeight),
+                ChangeButtonBounds = new Rectangle(557, 181, buyButtonWidth, buttonHeight),
+                IconLocation = new(97.5f, 18)
+            },
             Resources = new ResourceProduction
             {
-                TitlePosition = new Vector2(318, 46),
+                TitlePosition = new Rectangle(199, 46, 238, 15),
                 Resources = new List<ResourceArea>
                 {
                     new ConsumableResourceArea(name: "Food",
-                        bounds: new Rectangle(199, 75, 238, 16),
+                        bounds: new Rectangle(203, 75, 230, 13),
                         getDisplayDetails: (val, type) =>
                         {
                             return type switch
@@ -267,8 +280,8 @@ public abstract class Civ2Interface : IUserInterface
                     ),
                     new SharedResourceArea(new Rectangle(206, 140, 224, 16), true)
                     {
-                        Resources = new List<ResourceInfo>
-                        {
+                        Resources =
+                        [
                             new()
                             {
                                 Name = "Tax",
@@ -276,6 +289,7 @@ public abstract class Civ2Interface : IUserInterface
                                     city.Owner.TaxRate + "% " + Labels.For(LabelIndex.Tax) + ":" + val,
                                 Icon = new BitmapStorage("ICONS", 16, 320, 14)
                             },
+
                             new()
                             {
                                 Name = "Lux",
@@ -283,6 +297,7 @@ public abstract class Civ2Interface : IUserInterface
                                     city.Owner.LuxRate + "% " + Labels.For(LabelIndex.Lux) + ":" + val,
                                 Icon = new BitmapStorage("ICONS", 1, 320, 14)
                             },
+
                             new()
                             {
                                 Name = "Science",
@@ -290,13 +305,13 @@ public abstract class Civ2Interface : IUserInterface
                                     city.Owner.LuxRate + "% " + Labels.For(LabelIndex.Sci) + ":" + val,
                                 Icon = new BitmapStorage("ICONS", 31, 320, 14)
                             }
-                        }
+                        ]
                     }
                 }
             },
             UnitSupport = new UnitSupport
             {
-                Position = new Rectangle(8,216,181,69),
+                Position = new Rectangle(7, 215, 181, 69),
                 Rows = 2,
                 Columns = 4
             }
@@ -338,7 +353,7 @@ public abstract class Civ2Interface : IUserInterface
 
     public abstract int UnitsRows { get; }
     public abstract int UnitsPxHeight { get; }
-    public abstract Dictionary<string, IImageSource[]> PicSources { get; set; }
+    public abstract Dictionary<string, IImageSource[]> PicSources { get; }
     public abstract void GetShieldImages();
     public abstract UnitShield UnitShield(int unitType);
     public abstract void DrawBorderWallpaper(Wallpaper wallpaper, ref Image destination, int height, int width, Padding padding, bool statusPanel);
@@ -365,7 +380,7 @@ public abstract class Civ2Interface : IUserInterface
         return sets;
     }
 
-    public IMain MainApp { get; }
+    public IMain MainApp { get; } = main;
 
     protected abstract IEnumerable<Ruleset> GenerateRulesets(string path, string title);
     
@@ -405,8 +420,8 @@ public abstract class Civ2Interface : IUserInterface
         var foundIntroFile = Directory.EnumerateFiles(scnDirectory, introFile, new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive }).FirstOrDefault();
         if (foundIntroFile != null)
         {
-            var boxes = new Dictionary<string, PopupBox?>();
-            TextFileParser.ParseFile(Path.Combine(scnDirectory, foundIntroFile), new PopupBoxReader { Boxes = boxes }, true);
+            var boxes = new Dictionary<string, PopupBox>();
+            TextFileParser.ParseFile(Path.Combine(scnDirectory, foundIntroFile), new PopupBoxReader (boxes), true);
             if (boxes.TryGetValue("SCENARIO", out var dialogInfo))
             {
                 DialogHandlers[ScenCustomIntro.Title].UpdatePopupData(new()
@@ -439,7 +454,7 @@ public abstract class Civ2Interface : IUserInterface
         if (quickStart)
         {
             Initialization.ConfigObject.QuickStart = true;
-            Initialization.ConfigObject.WorldSize = new[] { 50, 80 };
+            Initialization.ConfigObject.WorldSize = [50, 80];
             Initialization.ConfigObject.NumberOfCivs = this.PlayerColours.Length - 1;
             Initialization.ConfigObject.BarbarianActivity = Initialization.ConfigObject.Random.Next(5);
             

@@ -1,5 +1,4 @@
 using System.Numerics;
-using Civ2engine.IO;
 using Model;
 using Model.Menu;
 using Raylib_CSharp.Collision;
@@ -7,30 +6,26 @@ using Raylib_CSharp.Colors;
 using Raylib_CSharp.Interact;
 using Raylib_CSharp.Rendering;
 using Raylib_CSharp.Transformations;
-using RaylibUI.BasicTypes.Controls;
 
 namespace RaylibUI.RunGame.GameControls.Menu;
 
-public class DropdownMenu :  BaseDialog
+public class DropdownMenu(GameScreen gameScreen) : BaseDialog(gameScreen.Main)
 {
     private bool _shown;
-    private readonly GameScreen _gameScreen;
     private int _current = -1;
-    private IUserInterface _active;
+    private readonly IUserInterface _active = gameScreen.MainWindow.ActiveInterface;
     private bool _clickInMenu;
     private bool _clickOutSide;
+    private readonly List<int> _separatorOffsets = [];
 
-    public DropdownMenu(GameScreen gameScreen) : base(gameScreen.Main)
-    {
-        _gameScreen = gameScreen;
-        _active = gameScreen.MainWindow.ActiveInterface;
-        MenuBar = gameScreen.MenuBar;
-    }
-
+    /// <summary>
+    /// Index of currently selected dropdown menu (-1 = no menu selected)
+    /// </summary>
     public int Current => _shown ? _current : -1;
 
-    public void Show(Vector2 location, int menuIndex, IEnumerable<MenuCommand> elements)
+    public void Show(Vector2 location, int menuIndex, IEnumerable<MenuCommand> elements, int[] separatorRows)
     {
+        _separatorOffsets.Clear();
         Location = location;
         _current = menuIndex;
         Controls.Clear();
@@ -56,25 +51,32 @@ public class DropdownMenu :  BaseDialog
 
         var dropdownWidth = childWidths.Sum() + DropDownItem.DropdownSpacing;
         var currentY = location.Y + 3;
+        int itemNo = 0;
         foreach (var menuItem in Controls.OfType<DropDownItem>())
         {
-            var height = menuItem.GetPreferredHeight() + 12;
+            var height = menuItem.GetPreferredHeight() + 8;
             menuItem.SetChildWidths(childWidths);
-            menuItem.Bounds = new Rectangle(location.X + 3, currentY, dropdownWidth, height);
+            menuItem.Bounds = new Rectangle(location.X, currentY, dropdownWidth, height);
             menuItem.OnResize();
             currentY += height;
+            if (separatorRows != null && separatorRows.Contains(itemNo))
+            {
+                currentY += 7;
+                _separatorOffsets.Add((int)currentY - 3);
+            }
+            itemNo++;
         }
 
-        Width = dropdownWidth + 6;
+        Width = dropdownWidth;
         Height = currentY - location.Y + 3;
-        _gameScreen.ShowDialog(this,true);
+        gameScreen.ShowDialog(this,true);
         _shown = true;
         _clickInMenu = false;
         _clickOutSide = false;
     }
     
     
-
+    // What happens when mouse is outside the active dropdown menu
     public override void MouseOutsideControls(Vector2 mousePos)
     {
         if (Input.IsMouseButtonDown(MouseButton.Left))
@@ -92,6 +94,7 @@ public class DropdownMenu :  BaseDialog
         }
         else
         {
+            // Hide the active menu if it's clicked
             if (_clickInMenu)
             {
                 foreach (var control in MenuBar.Children!.OfType<MenuLabel>())
@@ -101,11 +104,7 @@ public class DropdownMenu :  BaseDialog
                         if (control.Index == _current)
                         {
                             Hide();
-                            _gameScreen.Focused = control;
-                        }
-                        else
-                        {
-                            control.Activate();
+                            //_gameScreen.Focused = control;
                         }
                         return;
                     }
@@ -115,6 +114,20 @@ public class DropdownMenu :  BaseDialog
             if (_clickOutSide)
             {
                 Hide();
+                gameScreen.Hovered = null;
+            }
+            
+            // Activate another menu if the mouse hovers over it
+            foreach (var control in MenuBar.Children!.OfType<MenuLabel>())
+            {
+                if (ShapeHelper.CheckCollisionPointRec(mousePos, control.Bounds))
+                {
+                    if (control.Index != _current)
+                    {
+                        control.Activate();
+                    }
+                    return;
+                }
             }
         }
     }
@@ -122,7 +135,7 @@ public class DropdownMenu :  BaseDialog
     public float Height { get; set; }
 
     public int Width { get; set; }
-    public GameMenu MenuBar { get; }
+    public GameMenu MenuBar { get; } = gameScreen.MenuBar;
 
     public override void OnKeyPress(KeyboardKey key)
     {
@@ -173,7 +186,7 @@ public class DropdownMenu :  BaseDialog
 
         if (Focused == null)
         {
-            var hotControl = Controls.FirstOrDefault(c => c is DropDownItem dd && dd.HotKey == key);
+            var hotControl = Controls.FirstOrDefault(c => c is DropDownItem dd && dd.HotKey == key.ToModelKey());
             if (hotControl != null)
             {
                 Focused = hotControl;
@@ -187,18 +200,19 @@ public class DropdownMenu :  BaseDialog
             {
                 if (i >= Controls.Count)
                 {
+                    if (idx == -1) break;
                     i = -1;
                     continue;
                 }
 
-                if (Controls[i] is DropDownItem dd && dd.HotKey == key)
+                if (Controls[i] is DropDownItem dd && dd.HotKey == key.ToModelKey())
                 {
                     Focused = Controls[i];
                     return;
                 }
             }
 
-            if (Controls[idx] is DropDownItem cdd && cdd.HotKey == key)
+            if (idx != -1 && Controls[idx] is DropDownItem cdd && cdd.HotKey == key.ToModelKey())
             {
                 //Do nothing as they pressed the hotkey for this element and there is no conflict
                 return;
@@ -231,12 +245,17 @@ public class DropdownMenu :  BaseDialog
             }
             control.Draw(pulse);
         }
+
+        foreach(var offset in _separatorOffsets)
+        {
+            Graphics.DrawLine((int)Location.X, offset, (int)Location.X + Width, offset, new Color(215, 215, 215, 255));
+        }
     }
 
     public void Hide()
     {
         _shown = false;
-        _gameScreen.CloseDialog(this);
-        _gameScreen.Focused = null;
+        gameScreen.CloseDialog(this);
+        gameScreen.Focused = null;
     }
 }

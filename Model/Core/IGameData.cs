@@ -10,4 +10,5 @@ public interface IGameData
     int NoPollutionSkulls { get; }
     int GlobalTempRiseOccured { get; }
     int NoOfTurnsOfPeace { get; }
+    int[] CitiesBuiltSoFar { get;  }
 }

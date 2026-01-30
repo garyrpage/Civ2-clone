@@ -4,6 +4,7 @@ using Model.Core;
 using Model.Core.GoodyHuts;
 using Model.Core.GoodyHuts.Outcomes;
 using Model.Core.Mapping;
+using Model.Core.Units;
 
 namespace Civ2engine.MapObjects
 {
@@ -14,11 +15,10 @@ namespace Civ2engine.MapObjects
         public int Owner { get; set; } = -1;
         
         private Terrain _terrain;
-        
-        private bool[] _visibility;
+
         public int X { get; }
         public int Y { get; }
-        
+
         public int Z { get;}
 
         public int Odd { get; }
@@ -53,7 +53,7 @@ namespace Civ2engine.MapObjects
         // Get special resource type based on map seed & tile location
         public Tile(int x, int y, Terrain terrain, int seed, Map map, int xIndex, bool[] visibility)
         {
-            _visibility = visibility;
+            Visibility = visibility;
         
             // Courtesy of Civfanatics
             // https://forums.civfanatics.com/threads/is-there-really-no-way-to-do-this-add-resources-on-map.518649/#post-13002282
@@ -152,17 +152,17 @@ namespace Civ2engine.MapObjects
         
         public void SetVisible(int civId, bool visible = true)
         {
-            if (_visibility.Length <= civId)
+            if (Visibility.Length <= civId)
             {
-                _visibility = _visibility.Concat(Enumerable.Repeat(false, civId - _visibility.Length +1)).ToArray();
+                Visibility = Visibility.Concat(Enumerable.Repeat(false, civId - Visibility.Length +1)).ToArray();
             }
 
-            _visibility[civId] = visible;
+            Visibility[civId] = visible;
         }
         
         public bool IsVisible(int civId)
         {
-            return civId < _visibility.Length && _visibility[civId];
+            return civId < Visibility.Length && Visibility[civId];
         }
 
         public List<Unit> UnitsHere { get; } = new();
@@ -199,6 +199,8 @@ namespace Civ2engine.MapObjects
         
         public PlayerTile?[]? PlayerKnowledge { get; set; }
 
-        public bool[] Visibility => _visibility;
+        public bool[] Visibility { get; set; }
+
+        public bool HasGoodieHut { get; set; }
     }
 }

@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using Civ2engine.MapObjects;
 using Civ2engine.Units;
 using Model;
+using Model.Core;
+using Model.Core.Units;
 
 namespace Civ2engine.OriginalSaves;
 
@@ -13,4 +15,6 @@ public interface ILoadedGameObjects
     List<Transporter> Transporters { get; set; }
     List<Civilization> Civilizations { get; set; }
     List<Map> Maps { get; set; }
+    IGameData GameData { get; set; }
+    Options Options { get; set; }
 }

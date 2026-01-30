@@ -3,6 +3,7 @@ using System.Linq;
 using Civ2engine.Advances;
 using Civ2engine.Units;
 using Model.Constants;
+using Model.Core.Units;
 
 namespace Civ2engine
 {
@@ -40,9 +41,13 @@ namespace Civ2engine
         public int[] CasualtiesPerUnitType { get; set; }
 
         public List<City> Cities { get; } = new();
-        
+
         public PlayerType PlayerType { get; set; }
-        public int PowerRating { get; set; }
+
+        /// <summary>
+        /// Recorded every 2 turns
+        /// </summary>
+        public List<int> PowerRating { get; set; } = new();
         public int PowerRank { get; set; }
         public int NormalColour { get; set; }
         

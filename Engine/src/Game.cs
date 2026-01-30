@@ -5,10 +5,12 @@ using Civ2engine.Advances;
 using Civ2engine.Enums;
 using Civ2engine.Events;
 using Civ2engine.MapObjects;
+using Civ2engine.SaveLoad;
 using Civ2engine.Scripting;
 using Civ2engine.Units;
 using Model;
 using Model.Core;
+using Model.Core.Units;
 using Model.Events;
 
 namespace Civ2engine
@@ -23,10 +25,7 @@ namespace Civ2engine
         public FastRandom Random { get; set; } = new();
         public List<City> AllCities { get; } = new();
 
-        public IHistory History
-        {
-            get { return _history ??= new History(this); }
-        }
+        public IHistory History { get; }
 
         public List<Civilization> AllCivilizations { get; } = new();
 
@@ -62,28 +61,17 @@ namespace Civ2engine
         private readonly Map[] _maps;
 
         public IList<Map> Maps => _maps;
-
-        private History? _history;
         public IScriptEngine Script { get; }
 
         public int NoMaps => _maps.Length;
 
         public int TotalMapArea => _maps.Select(m => m.Tile.GetLength(0) * m.Tile.GetLength(1)).Sum();
         public Dictionary<string, List<string>?> CityNames { get; set; }
+        public Dictionary<Civilization, int> CitiesBuiltSoFar { get; } = new Dictionary<Civilization, int>();
         public Civilization GetPlayerCiv => AllCivilizations.FirstOrDefault(c => c.PlayerType == PlayerType.Local);
 
         public IPlayer[] Players { get; }
-
-        public void TriggerUnitEvent(UnitEventType eventType, IUnit movedUnit,
-            BlockedReason blockedReason = BlockedReason.NotBlocked)
-        {
-            OnUnitEvent?.Invoke(this, new MovementBlockedEventArgs(eventType, movedUnit, blockedReason));
-        }
-
-        public void TriggerUnitEvent(UnitEventArgs args)
-        {
-            OnUnitEvent?.Invoke(this, args);
-        }
+        
 
         public void TriggerMapEvent(MapEventType eventType, List<Tile> tilesChanged)
         {
@@ -102,6 +90,7 @@ namespace Civ2engine
         }
 
         private double? _maxDistance;
+        private ImprovementEncoder? _encoder;
 
         public double MaxDistance
         {
@@ -109,6 +98,8 @@ namespace Civ2engine
         }
 
         public IDictionary<int, TerrainImprovement> TerrainImprovements { get; set; }
+
+        public IImprovementEncoder ImprovementEncoder => _encoder ??= new ImprovementEncoder(TerrainImprovements);
 
         private double ComputeMaxDistance()
         {
@@ -128,9 +119,7 @@ namespace Civ2engine
             var order = Rules.Orders.FirstOrDefault(t => t.Type == unitOrder);
             return order != null ? order.Name : Labels.For(LabelIndex.NoOrders);
         }
-
         
-
         public void ConnectPlayer(IPlayer player)
         {
             var id = player.Civilization.Id;
@@ -139,6 +128,19 @@ namespace Civ2engine
             player.SetUnitActive(currentPlayer.ActiveUnit, false);
             Players[id] = player;
             Script.Connect(player.Ui);
+        }
+
+
+        //public void TriggerUnitEvent(UnitEventType eventType, IUnit movedUnit,
+        //    BlockedReason blockedReason = BlockedReason.NotBlocked)
+        //{
+        //    OnUnitEvent?.Invoke(this, new MovementBlockedEventArgs(eventType, movedUnit, blockedReason));
+        //}
+
+        //TOOD: Remove / fold back into master properly
+        public void TriggerUnitEvent(UnitEventArgs args)
+        {
+            OnUnitEvent?.Invoke(this, args);
         }
     }
 }

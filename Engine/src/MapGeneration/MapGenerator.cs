@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Civ2engine.Enums;
 using Civ2engine.MapObjects;
 using Model.Core;
+using Model.Core.Mapping;
 
 namespace Civ2engine
 {
@@ -76,7 +77,7 @@ namespace Civ2engine
                     
                     mainMap.NormalizeIslands();
                     
-                    mainMap.CalculateFertility(terrains[0], land);
+                    mainMap.CalculateFertility(terrains[0]);
 
                     maps[0] = mainMap;
                 }
@@ -143,28 +144,26 @@ namespace Civ2engine
 
             var grassland = terrains[0][(int) TerrainType.Grassland];
 
-            var continents = 0;
-
-            var oceans = new List<Tile>();
+            var oceans = new HashSet<Tile>();
 
             var islands = new List<IslandDetails>();
 
             while (landUsed < landRequired && remainingTiles.Count > 0)
             {
-                var candidate = config.Random.ChooseFrom<Tile>(remainingTiles);
+                var candidate = config.Random.ChooseFrom(remainingTiles);
                 remainingTiles.Remove(candidate);
                 land.Add(candidate);
 
                 var edgeSet = new HashSet<Tile>();
                 candidate.Terrain = grassland;
-                var island = new IslandDetails {Tiles = {candidate}};
+                var island = new IslandDetails {Tiles = {candidate}, Id = islands.Count +1};
                 islands.Add(island);
                         
                 var size = config.Random.Next(minIslandSize, maxIslandSize);
 
                 foreach (var tile in mainMap.DirectNeighbours(candidate))
                 {
-                    if (tile.Island != -1) continue;
+                    if (tile.Type != TerrainType.Ocean || !remainingTiles.Contains(tile) || tile.Island != -1) continue;
                     edgeSet.Add(tile);
                     remainingTiles.Remove(tile);
                     tile.Island = 0;
@@ -173,6 +172,7 @@ namespace Civ2engine
                 while (island.Tiles.Count < size && edgeSet.Count > 0)
                 {
                     var choice = config.Random.ChooseFrom(edgeSet);
+                    edgeSet.Remove(choice);
                     island.Tiles.Add(choice);
                     land.Add(choice);
 
@@ -189,28 +189,37 @@ namespace Civ2engine
 
                 if (edgeSet.Count > 0)
                 {
-                    oceans.AddRange(edgeSet);
-
-                    foreach (var neighbour in edgeSet.SelectMany(tile =>
-                                 mainMap.DirectNeighbours(tile).Where(n =>
-                                     n.Island == -1 && mainMap.Neighbours(n).Any(t => t.Type != TerrainType.Ocean))))
+                    foreach (var tile in edgeSet)
                     {
-                        remainingTiles.Remove(neighbour);
-                        neighbour.Island = 0;
-                        oceans.Add(neighbour);
+                        oceans.Add(tile);
+                        foreach (var neighbour in tile.Neighbours().Where(n =>
+                                     n is { Island: -1, Type: TerrainType.Ocean } && remainingTiles.Contains(n) &&
+                                     mainMap.DiagonalNeighbours(n).Any(t => t.Type != TerrainType.Ocean)))
+                        {
+                            neighbour.Island = 0;
+                            remainingTiles.Remove(neighbour);
+                            oceans.Add(neighbour);
+                        }
                     }
                 }
 
                 landUsed += island.Tiles.Count;
             }
-                    
-            oceans.AddRange(remainingTiles);
 
+            if (remainingTiles.Count > 0)
+            {
+                foreach (var tile in remainingTiles)
+                {
+                    oceans.Add(tile);
+                    tile.Island = 0;
+                }
+            }
+            
             mainMap.Islands = islands;
             mainMap.RenumberIslands();
             mainMap.RenumberOceans(oceans);
                     
-            mainMap.CalculateFertility(terrains[0], land);
+            mainMap.CalculateFertility(terrains[0]);
 
             return mainMap;
         }

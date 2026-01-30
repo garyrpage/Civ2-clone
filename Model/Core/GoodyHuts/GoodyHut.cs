@@ -1,5 +1,5 @@
-﻿using Civ2engine.Units;
-using Model.Core.GoodyHuts.Outcomes;
+﻿using Model.Core.GoodyHuts.Outcomes;
+using Model.Core.Units;
 
 namespace Model.Core.GoodyHuts
 {
