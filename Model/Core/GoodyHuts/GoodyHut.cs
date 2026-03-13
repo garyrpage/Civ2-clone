@@ -9,11 +9,19 @@ namespace Model.Core.GoodyHuts
 
         public GoodyHut() 
         {
+            // Gold
             _outcomes.Add(new GoldOutcome(50));
             // Mercenaries
+            _outcomes.Add(new MercenariesOutcome());
             // Technology (scrolls)
-            // Advanced Tribe (new city)
+            _outcomes.Add(new ScrollsOutcome());
+            // Advanced Tribe (new city or nomads)
+            _outcomes.Add(new AdvancedTribeOutcome());
+            _outcomes.Add(new NomadsOutcome());
             // Barbarians
+            _outcomes.Add(new BarbariansOutcome());
+            //Abandoned Village / Nothing
+            _outcomes.Add(new AbandonedVillageOutcome());
         }
 
         public GoodyHutOutcomeResult Trigger(Unit unit)

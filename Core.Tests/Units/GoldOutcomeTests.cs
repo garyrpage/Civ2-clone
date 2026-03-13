@@ -22,4 +22,33 @@ public class GoldOutcomeTests
         // Assert
         Assert.Equal(initialMoney + goldAmount, owner.Money);
     }
+
+    [Fact]
+    public void ApplyOutcome_ReturnsGoldAmountInReplaceNumbers()
+    {
+        // Arrange
+        var goldAmount = 75;
+        var unit = new Unit { Owner = new Civilization() };
+        var goldOutcome = new GoldOutcome(goldAmount);
+
+        // Act
+        var result = goldOutcome.ApplyOutcome(unit);
+
+        // Assert
+        Assert.Equal([goldAmount], result.ReplaceNumbers);
+    }
+
+    [Fact]
+    public void ApplyOutcome_ReturnsGoldOutcomeType()
+    {
+        // Arrange
+        var unit = new Unit { Owner = new Civilization() };
+        var goldOutcome = new GoldOutcome(50);
+
+        // Act
+        var result = goldOutcome.ApplyOutcome(unit);
+
+        // Assert
+        Assert.Equal("Gold", result.OutcomeType);
+    }
 }

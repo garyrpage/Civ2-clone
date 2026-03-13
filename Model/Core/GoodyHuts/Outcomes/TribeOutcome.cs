@@ -2,9 +2,9 @@
 
 namespace Model.Core.GoodyHuts.Outcomes
 {
-    internal abstract class TribeOutcome : GoodyHutOutcome
+    public abstract class TribeOutcome : GoodyHutOutcome
     {
-        protected TribeOutcome(string  message) : base(message) { }
+        protected TribeOutcome(string message) : base(message) { }
         public override GoodyHutOutcomeResult ApplyOutcome(Unit unit)
         {
             throw new NotImplementedException();
@@ -30,19 +30,27 @@ namespace Model.Core.GoodyHuts.Outcomes
         }
     }
 
-    //internal class AdvancedTribeOutcome : TribeOutcome
-    //{
-    //    public string Name => "Advanced Tribe";
-    //    public string Description => "You have discovered an advanced tribe.";
+    public class AdvancedTribeOutcome : TribeOutcome
+    {
+        public string Name => "Advanced Tribe";
+        public AdvancedTribeOutcome() : base("SURPRISETRIBE") { }
 
-    //    public override void ApplyOutcome(Unit unit)
-    //    {
-    //        throw new NotImplementedException();
-    //    }
-    //}
+        public override GoodyHutOutcomeResult ApplyOutcome(Unit unit)
+        {
+            return new GoodyHutOutcomeResult(Message, true, "Tribe");
+        }
+    }
 
-    //internal class NomadsOutcome : TribeOutcome
-    //{
+    public class NomadsOutcome : TribeOutcome
+    {
+        public NomadsOutcome() : base("SURPRISENOMADS") { }
+
+        public override GoodyHutOutcomeResult ApplyOutcome(Unit unit)
+        {
+            return new GoodyHutOutcomeResult(Message, true, "Nomads");
+        }
+    }
+
     //    public string Name => "Nomads";
     //    public string Description => "SURPRISENOMADS";
     //    public override void ApplyOutcome(Unit unit)//, Rules rules)

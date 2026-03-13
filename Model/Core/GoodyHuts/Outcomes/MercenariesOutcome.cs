@@ -2,12 +2,12 @@
 
 namespace Model.Core.GoodyHuts.Outcomes
 {
-    internal class MercenariesOutcome : GoodyHutOutcome
+    public class MercenariesOutcome : GoodyHutOutcome
     {
         public MercenariesOutcome() : base("SURPRISEMERCS") { }
         public override GoodyHutOutcomeResult ApplyOutcome(Unit unit)
         {
-            throw new NotImplementedException();
+            return new GoodyHutOutcomeResult(Message, true, "Mercenaries");
         }
     }
 }
