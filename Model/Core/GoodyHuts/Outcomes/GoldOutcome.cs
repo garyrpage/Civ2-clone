@@ -3,17 +3,19 @@
 namespace Model.Core.GoodyHuts.Outcomes
 {
     public class GoldOutcome : GoodyHutOutcome
-    {
-        private string _description => $"You have discovered valuable metal deposits worth {_amount} gold.";
+    {        
         private readonly int _amount;
-        public GoldOutcome(int amount)
+        public GoldOutcome(int amount) : base("SURPRISEMETALS")
         {
             _amount = amount;
         }
         public override GoodyHutOutcomeResult ApplyOutcome(Unit unit)
         {
             unit.Owner.Money += _amount;
-            return new GoodyHutOutcomeResult(_description, true, "Gold");
+            return new GoodyHutOutcomeResult(Message, true, "Gold")
+            {
+                ReplaceNumbers = [_amount]
+            };
         }
     }
 }

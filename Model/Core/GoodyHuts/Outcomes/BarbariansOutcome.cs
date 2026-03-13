@@ -5,7 +5,7 @@ namespace Model.Core.GoodyHuts.Outcomes
     internal class BarbariansOutcome : GoodyHutOutcome
     {
         public string Name => "Barbarians";
-        public string Description => "You have unleashed a horde of barbarians!";
+        public BarbariansOutcome() : base("SURPRISEBARB") { }
         public override GoodyHutOutcomeResult ApplyOutcome(Unit unit)
         {
             throw new NotImplementedException();

@@ -2,8 +2,9 @@
 
 namespace Model.Core.GoodyHuts.Outcomes
 {
-    internal class TribeOutcome : GoodyHutOutcome
+    internal abstract class TribeOutcome : GoodyHutOutcome
     {
+        protected TribeOutcome(string  message) : base(message) { }
         public override GoodyHutOutcomeResult ApplyOutcome(Unit unit)
         {
             throw new NotImplementedException();
@@ -43,7 +44,7 @@ namespace Model.Core.GoodyHuts.Outcomes
     //internal class NomadsOutcome : TribeOutcome
     //{
     //    public string Name => "Nomads";
-    //    public string Description => "You discover a band of wandering nomads.\r\nThey agree to join your tribe.";
+    //    public string Description => "SURPRISENOMADS";
     //    public override void ApplyOutcome(Unit unit)//, Rules rules)
     //    {
     //        // Add Settlers unit to the players units at this unit's location.

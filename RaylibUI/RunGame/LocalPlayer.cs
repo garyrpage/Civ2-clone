@@ -212,18 +212,6 @@ public class LocalPlayer : IPlayer
     {
         var args = new GoodyHutOutcomeEventArgs(unit, outcome);
         OnUnitEvent?.Invoke(this, args);
-
-        var popupName = outcome.OutcomeType switch
-        {
-            "Gold" => "SURPRISEMETALS",
-            "Scrolls" => "SURPRISESCROLLS",
-            "Tribe" => "SURPRISENOMADS",
-            "Barbarians" => "SURPRISEBARB",
-            "AbandonedVillage" => "SURPRISENOTHING",
-            "Mercenaries" => "SURPRISEMERCS",
-            _ => "GOODYHUT_DEFAULT"
-        };
-
-        _gameScreen.ShowPopup(popupName, replaceNumbers: [50]);
+        _gameScreen.ShowPopup(outcome.Message, replaceNumbers: outcome.ReplaceNumbers);
     }
 }
